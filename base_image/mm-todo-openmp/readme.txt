@@ -1,0 +1,13 @@
+NOTE: initially, this is the sequential version. The goal is to use openMP to safely parallelize. Focus on "mm.cpp", and use openMP parallel or parallel for directives to parallelize. Don't forget #include <omp.h>.
+
+To build debug or optimized version:
+
+  make debug => mm
+
+  make opt   ==> mm-o
+
+To run:
+
+  mm [-?] [-n MatrixSize] [-t NumThreads]
+
+  mm-o [-?] [-n MatrixSize] [-t NumThreads]
