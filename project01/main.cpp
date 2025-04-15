@@ -22,7 +22,7 @@
 #include <cstring>
 #include <chrono>
 #include <sys/sysinfo.h>
-
+#include <omp.h>
 #include "alloc2D.h"
 #include "workmatrix.h"
 
@@ -68,7 +68,7 @@ int main(int argc, char *argv[])
 	// calculations.
 	//
   auto start = chrono::high_resolution_clock::now();
-
+	#pragma omp parallel for num_threads(_numThreads)
 	for (int r = 0; r < wm.num_rows(); r++) {
 		for (int c = 0; c < wm.num_cols(); c++) {
 
