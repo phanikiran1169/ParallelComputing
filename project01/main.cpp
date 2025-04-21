@@ -70,8 +70,7 @@ int main(int argc, char *argv[])
 	int r = 0;
 	int c = 0;
   auto start = chrono::high_resolution_clock::now();
-  	omp_set_num_threads(_numThreads);
-	#pragma omp parallel for schedule(dynamic)
+	#pragma omp parallel for num_threads(_numThreads) schedule(dynamic)
 	for (int i = 0; i < (wm.num_rows()*wm.num_cols()); i++) {
 		//
 		// this solves the work in cell [r][c]:
@@ -83,6 +82,7 @@ int main(int argc, char *argv[])
 		//
 		// show some output every 100 cells so we see progress:
 		//
+		#pragma omp atomic
 		cells++;
 
 		if (cells % 100 == 0) {
