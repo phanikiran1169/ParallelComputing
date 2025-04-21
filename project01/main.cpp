@@ -67,25 +67,27 @@ int main(int argc, char *argv[])
 	// Solve each cell in the work matrix. Compute time for speedup
 	// calculations.
 	//
+	int r = 0;
+	int c = 0;
   auto start = chrono::high_resolution_clock::now();
-	#pragma omp parallel for num_threads(_numThreads)
-	for (int r = 0; r < wm.num_rows(); r++) {
-		for (int c = 0; c < wm.num_cols(); c++) {
+  	omp_set_num_threads(_numThreads);
+	#pragma omp parallel for schedule(dynamic)
+	for (int i = 0; i < (wm.num_rows()*wm.num_cols()); i++) {
+		//
+		// this solves the work in cell [r][c]:
+		//
+		r = i / wm.num_rows();
+		c = i % wm.num_cols();
+		wm.do_work(r, c);
 
-			//
-			// this solves the work in cell [r][c]:
-			//
-			wm.do_work(r, c);
+		//
+		// show some output every 100 cells so we see progress:
+		//
+		cells++;
 
-			//
-			// show some output every 100 cells so we see progress:
-			//
-			cells++;
-
-			if (cells % 100 == 0) {
-				cout << ".";
-				cout.flush();
-			}
+		if (cells % 100 == 0) {
+			cout << ".";
+			cout.flush();
 		}
 	}
   
