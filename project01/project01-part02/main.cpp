@@ -25,7 +25,7 @@
 #include <chrono>
 #include <random>
 #include <unordered_set>
-#include <stack>
+#include <queue>
 #include <sys/sysinfo.h>
 #include <omp.h>
 
@@ -38,6 +38,7 @@ using namespace std;
 // Globals:
 //
 static int _numThreads = 1;  // default to sequential execution
+static int cells = 0;
 
 //
 // Function prototypes:
@@ -79,19 +80,25 @@ int main(int argc, char *argv[])
 	unordered_set<int> visited;
 	visited.insert(start_vertex);
 
-	stack<int> dfs;
-	dfs.push(start_vertex);
+	queue<int> bfs;
+	bfs.push(start_vertex);
 	
-	while(not dfs.empty()) {
-		int vertex = dfs.top();
-		dfs.pop();
+	while(not bfs.empty()) {
+		int vertex = bfs.front();
+		bfs.pop();
 
 		vector<int> neighbors = wg.do_work(vertex);
+		cells++;
+
+		if(cells % 100 == 0) {
+			cout << ".";
+			cout.flush();
+		}
 		
 		for(auto neighbour : neighbors) {
 			if(visited.find(neighbour) == visited.end()) {
 				visited.insert(neighbour);
-				dfs.push(neighbour);
+				bfs.push(neighbour);
 			}
 		}
 	}
