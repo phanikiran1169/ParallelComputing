@@ -85,9 +85,7 @@ int main(int argc, char *argv[])
 	vector<int> current_level;
 	
 	// Counter to track the number of processed cells
-	int cells = 0;
-
-	
+	// int cells = 0;
 
 	// Size of the current level
 	int current_level_size = 0;
@@ -116,50 +114,53 @@ int main(int argc, char *argv[])
 
 		// Get the vertices to be processed into the current level buffer
 		for (int i = 0; i < current_level_size; ++i) {
-            current_level.push_back(bfs.front());
-            bfs.pop();
-        }
+			current_level.push_back(bfs.front());
+			bfs.pop();
+		}
 
 		// Parallelizing the visiting of vertices, doing the work, and getting the unvisited neighbors
 		#pragma omp parallel for num_threads(_numThreads) schedule(dynamic)
 		for (int i = 0; i < current_level_size; ++i) {
-            int vertex = current_level[i];
-            vector<int> neighbors = wg.do_work(vertex);
+			int vertex = current_level[i];
+			vector<int> neighbors = wg.do_work(vertex);
 
 			// Visit each neighbor for the current vertex
-            for (auto neighbor : neighbors) {
+			for (auto neighbor : neighbors) {
 
-				// Flag to check if a vertex was visited
-				bool vertex_visted = false;
+				// // Flag to check if a vertex was visited
+				// bool vertex_visited = false;
 
 				// Critical pragma because visited set and BFS queue are shared
-            	// and must be accessed safely by only one thread at a time
-                #pragma omp critical
-                {	
+				// and must be accessed safely by only one thread at a time
+				#pragma omp critical
+				{	
 					// If the neighbor is unvisited, then mark it visited and add it to the queue
-                    if (visited.find(neighbor) == visited.end()) {
-                        visited.insert(neighbor);
+					if (visited.find(neighbor) == visited.end()) {
+						visited.insert(neighbor);
 						bfs.push(neighbor);
-                        vertex_visted = true;
-                    }
-                }
-
-                // Increment the counter only if a new vertex was visited
-				// otherwise it will show false progress
-				if (vertex_visted) {
-                    #pragma omp atomic
-                    cells++;
-                }
-
-				// Display progress for every 250 vertices visited
-				if(cells % 250 == 0) {
-					cout << ".";
-					cout.flush();
+						// vertex_visited = true;
+					}
 				}
-            }
-        }
+
+				// // Increment the counter only if a new vertex was visited
+				// // otherwise it will show false progress
+				// if (vertex_visited) {
+				// 	#pragma omp atomic
+				// 	cells++;
+				// }
+
+				// #pragma omp critical 
+				// {
+				// 	// Display progress for every 250 vertices visited
+				// 	if(cells % 250 == 0) {
+				// 		cout << ".";
+				// 		cout.flush();
+				// 	}
+				// }
+			}
+		}
 	}
-  
+
 
 	auto stop = chrono::high_resolution_clock::now();
 	auto diff = stop - start;
