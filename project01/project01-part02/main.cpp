@@ -85,19 +85,21 @@ int main(int argc, char *argv[])
 	vector<int> current_level;
 	
 	// Counter to track the number of processed cells
-	// int cells = 0;
+	int cells = 0;
 
 	// Size of the current level
 	int current_level_size = 0;
 
 	/*
-		To solve the problem, BFS traversal is parallelized.
-		The idea is to extract all the vertices that need to be processed at the current level,
-		perform the required work for each vertex, check their unvisited neighbors,
-		and push the unvisited neighbors into the queue for future processing.
+		To solve the problem, BFS traversal is used to access all the vertices and the traversal is parallelized.
+		The idea is to 
+			- extract all the vertices that need to be processed at the current level,
+			- perform the required work for each vertex, 
+			- check their unvisited neighbors and,
+			- push the unvisited neighbors into the queue for future processing.
 
-		Only the work done on the vertices at the current level (calling do_work) is parallelized,
-		as it is the most time-consuming operation.
+		The work done on the vertices at the current level i.e. calling of do_work
+		(this is the most time-consuming operation) is parallelized
 		Other operations like pushing into the BFS queue or marking vertices as visited are lightweight 
 		and can be handled sequentially.
 
@@ -127,8 +129,8 @@ int main(int argc, char *argv[])
 			// Visit each neighbor for the current vertex
 			for (auto neighbor : neighbors) {
 
-				// // Flag to check if a vertex was visited
-				// bool vertex_visited = false;
+				// Flag to check if a vertex was visited
+				bool vertex_visited = false;
 
 				// Critical pragma because visited set and BFS queue are shared
 				// and must be accessed safely by only one thread at a time
@@ -138,25 +140,22 @@ int main(int argc, char *argv[])
 					if (visited.find(neighbor) == visited.end()) {
 						visited.insert(neighbor);
 						bfs.push(neighbor);
-						// vertex_visited = true;
+						vertex_visited = true;
 					}
 				}
 
-				// // Increment the counter only if a new vertex was visited
-				// // otherwise it will show false progress
-				// if (vertex_visited) {
-				// 	#pragma omp atomic
-				// 	cells++;
-				// }
+				// Increment the counter only if a new vertex was visited
+				// otherwise it will show false progress
+				if (vertex_visited) {
+					#pragma omp atomic
+					cells++;
+				}
 
-				// #pragma omp critical 
-				// {
-				// 	// Display progress for every 250 vertices visited
-				// 	if(cells % 250 == 0) {
-				// 		cout << ".";
-				// 		cout.flush();
-				// 	}
-				// }
+				// Display progress for every 500 vertices visited
+				if(cells % 500 == 0) {
+					cout << ".";
+					cout.flush();
+				}
 			}
 		}
 	}
