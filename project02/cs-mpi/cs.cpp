@@ -303,26 +303,31 @@ uchar** main_process(uchar** image, int rows, int cols, int steps, int numProcs)
 		MPI_Send(image[0], count, MPI_UNSIGNED_CHAR, dest, tag, MPI_COMM_WORLD);
 	}
 
-		// Instead of doing nothing, the main process also performs it's own 
-		// share of contrast streching
-		int chunkSize = rows/numProcs;
-		int extraSize = rows%numProcs;
+	// Instead of doing nothing, the main process also performs it's own 
+	// share of contrast streching
+	int chunkSize = rows/numProcs;
+	int extraSize = rows%numProcs;
 
-		uchar** resultImage;
+	uchar** resultImage;
 
+	if (numProcs == 1) {
+		resultImage = ContrastStretch(&image[0], chunkSize + extraSize, cols, steps);
+	}
+	else {
 		resultImage = ContrastStretch(&image[0], chunkSize + extraSize + 1, cols, steps);
+	}
 
-		// Receive the remaining results from the workers
-		for (int w = 1; w < numProcs; w++) {
+	// Receive the remaining results from the workers
+	for (int w = 1; w < numProcs; w++) {
 
-			int src = w;
-			int count = chunkSize * cols * 3;
-			int tag = 0;
+		int src = w;
+		int count = chunkSize * cols * 3;
+		int tag = 0;
 
-			// Receive chunk of results from worker:
-		    int row = chunkSize * w;
-    		MPI_Recv(resultImage[row], count, MPI_UNSIGNED_CHAR, src, tag, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-  		}
+		// Receive chunk of results from worker:
+		int row = chunkSize * w;
+		MPI_Recv(resultImage[row], count, MPI_UNSIGNED_CHAR, src, tag, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+	}
 
 	return resultImage;
 }
