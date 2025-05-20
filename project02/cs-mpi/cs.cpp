@@ -308,14 +308,16 @@ uchar** main_process(uchar** image, int rows, int cols, int steps, int numProcs)
 	int chunkSize = rows/numProcs;
 	int extraSize = rows%numProcs;
 
-	uchar** resultImage;
+	uchar** processedImage;
+	uchar** finalImage = New2dMatrix<uchar>(rows, cols*3);
 
 	if (numProcs == 1) {
-		resultImage = ContrastStretch(&image[0], chunkSize + extraSize, cols, steps);
+		processedImage = ContrastStretch(&image[0], chunkSize + extraSize, cols, steps);
 	}
 	else {
-		resultImage = ContrastStretch(&image[0], chunkSize + extraSize + 1, cols, steps);
+		processedImage = ContrastStretch(&image[0], chunkSize + extraSize + 1, cols, steps);
 	}
+	memcpy(finalImage[0], processedImage[0], (chunkSize + extraSize) * cols * 3 * sizeof(uchar));
 
 	// Receive the remaining results from the workers
 	for (int w = 1; w < numProcs; w++) {
@@ -325,11 +327,12 @@ uchar** main_process(uchar** image, int rows, int cols, int steps, int numProcs)
 		int tag = 0;
 
 		// Receive chunk of results from worker:
-		int row = chunkSize * w;
-		MPI_Recv(resultImage[row], count, MPI_UNSIGNED_CHAR, src, tag, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+		int row = chunkSize * w + extraSize;
+		MPI_Recv(processedImage[0], count, MPI_UNSIGNED_CHAR, src, tag, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+		memcpy(finalImage[row],  processedImage[0], chunkSize * cols * 3 * sizeof(uchar));
 	}
 
-	return resultImage;
+	return finalImage;
 }
 
 // worker MPI process
