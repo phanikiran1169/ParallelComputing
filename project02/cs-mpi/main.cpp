@@ -6,7 +6,7 @@
 //
 // Usage: cs infile.bmp outfile.bmp steps
 //
-// << YOUR NAME >>
+// Phani Kiran V
 //
 // Initial author:
 //   Prof. Joe Hummel
@@ -16,6 +16,11 @@
 #include "app.h"
 #include <mpi.h>
 
+
+// Function prototypes:
+
+uchar** main_process(uchar** image, int rows, int cols, int steps, int numProcs);
+void worker_process(int myRank, int numProcs);
 
 //
 // main:
@@ -29,7 +34,7 @@ int main(int argc, char* argv[])
 	MPI_Comm_rank(MPI_COMM_WORLD, &myRank);
 
 	if(myRank > 0) {
-		cout << "Hello from worker process number " << myRank << " !!" << endl;
+		worker_process(myRank, numProcs);
 	}
 	
 	else {
@@ -84,10 +89,11 @@ int main(int argc, char* argv[])
 		// okay, perform contrast stretching:
 		//
 		cout << "** Processing..." << endl;
+		cout.flush();
 
 		auto start = chrono::high_resolution_clock::now();
 
-		image = ContrastStretch(image, rows, cols, steps);
+		image = main_process(image, rows, cols, steps, numProcs);
 
 		auto stop = chrono::high_resolution_clock::now();
 		auto diff = stop - start;
