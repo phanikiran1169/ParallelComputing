@@ -300,17 +300,8 @@ uchar** main_process(uchar** image, int rows, int cols, int steps, int numProcs)
 		cout << "** Step " << step + 1 << "..." << endl;
 		cout.flush();
 		// Send image to workers:
-		for (int w = 1; w < numProcs; w++) {
-			
-			int dest = w;
-			int count = 1;
-			int tag = 0;
-			
-			
-			// We send the image
-			count = rows * cols * 3;
-			MPI_Send(finalImage[0], count, MPI_UNSIGNED_CHAR, dest, tag, MPI_COMM_WORLD);
-		}
+		count = rows * cols * 3;
+		MPI_Bcast(finalImage[0], count, MPI_UNSIGNED_CHAR, 0 /* main */, MPI_COMM_WORLD);
 		
 		// Instead of doing nothing, the main process also performs it's own 
 		// share of contrast streching
@@ -375,7 +366,7 @@ void worker_process(int myRank, int numProcs)
 		// NOTE: we know that underlying "matrix" is single 1D array, pointed to image[0] 
 		// and of length rows * cols * 3.
 		  count = rows * cols * 3;
-		MPI_Recv(image[0], count, MPI_UNSIGNED_CHAR, src, tag, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+		MPI_Bcast(image[0], count, MPI_UNSIGNED_CHAR, src /* main */, MPI_COMM_WORLD);
 	
 		// We have the image. We perform contrast streching for our block of rows
 		int chunkSize = rows / numProcs;

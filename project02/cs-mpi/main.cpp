@@ -47,8 +47,6 @@ int main(int argc, char* argv[])
 		//
 		// process command-line args to program:
 		//
-		cout << "Hello from main Process" << endl;
-		cout << "Number of arguments - " << argc << endl;
 		if (argc != 4)
 		{
 			cout << endl;
@@ -106,7 +104,7 @@ int main(int argc, char* argv[])
 		cout << endl;
 		cout << "** Done!  Time: " << duration.count() / 1000.0 << " secs" << endl;
 
-		debug_compare_image("sunset.bmp", steps, true /*verbose off*/, image, 0, rows-1, 0, cols-1);
+		// debug_compare_image("sunset.bmp", steps, true /*verbose off*/, image, 0, rows-1, 0, cols-1);
 
 		cout << "** Writing bitmap..." << endl;
 		WriteBitmapFile(outfile, bitmapFileHeader, bitmapInfoHeader, image);
