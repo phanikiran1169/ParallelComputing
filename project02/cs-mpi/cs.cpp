@@ -218,13 +218,16 @@ uchar **ContrastStretch(uchar **image, int rows, int cols, int steps)
 	//
 	// First, we need a temporary 2D matrix of the same size:
 	//
-	uchar **image2 = New2dMatrix<uchar>(rows, cols*3);
+	uchar **readImage = New2dMatrix<uchar>(rows, cols*3);
+	uchar **writeImage = New2dMatrix<uchar>(rows, cols*3);
+
+	memcpy(readImage[0], image[0], rows * cols * 3 * sizeof(uchar));
 
 	//
 	// copy the boundary rows into the temp image so we can swap
 	// pointers after each step:
 	//
-	copy_boundary(image2, image, rows, cols);
+	copy_boundary(writeImage, readImage, rows, cols);
 
 	//
 	// Okay, now perform contrast stretching, one step at a time:
@@ -233,7 +236,7 @@ uchar **ContrastStretch(uchar **image, int rows, int cols, int steps)
 
 	while (step <= steps)
 	{
-		cout << "** Step " << step << "..." << endl;
+		// cout << "** Step " << step << "..." << endl;
 
 		//
 		// Okay, for each row (except boundary rows), lighten/darken pixel:
@@ -250,16 +253,14 @@ uchar **ContrastStretch(uchar **image, int rows, int cols, int steps)
 
 			for (int col = 1; col < cols-1; col++, basecol += 3)
 			{
-				stretch_one_pixel(image2, image, row, basecol);
+				stretch_one_pixel(writeImage, readImage, row, basecol);
 			}
 		}
 
 		//
 		// flip the image pointers and step:
 		//
-		uchar** tempi = image;
-		image = image2;
-		image2 = tempi;
+		std::swap(readImage, writeImage);
 
 		step++;
 
@@ -268,9 +269,9 @@ uchar **ContrastStretch(uchar **image, int rows, int cols, int steps)
 	//
 	// done!
 	//
-	Delete2dMatrix(image2);
+	Delete2dMatrix(writeImage);
 
-	return image;
+	return readImage;
 }
 
 // main MPI process
@@ -279,57 +280,64 @@ uchar** main_process(uchar** image, int rows, int cols, int steps, int numProcs)
 	cout << "main starting..." << endl;
 	cout.flush();
 
-	// Send image to workers:
-	for (int w = 1; w < numProcs; w++) {
-
-
-		int dest = w;
-		int count = 1;
-		int tag = 0;
-
-		// First we send the number of rows and columns of the image
-		MPI_Send(&rows, count, MPI_INT, dest, tag, MPI_COMM_WORLD);
-		MPI_Send(&cols, count, MPI_INT, dest, tag, MPI_COMM_WORLD);
-
-		// We send the no. of steps we have to perform contrast streching
-		MPI_Send(&steps, count, MPI_INT, dest, tag, MPI_COMM_WORLD);
-
-		// We send the extra size to estimate the starting row
-		int extraSize = rows%numProcs;
-		MPI_Send(&extraSize, count, MPI_INT, dest, tag, MPI_COMM_WORLD);
-
-		// We send the image
-		count = rows * cols * 3;
-		MPI_Send(image[0], count, MPI_UNSIGNED_CHAR, dest, tag, MPI_COMM_WORLD);
-	}
-
-	// Instead of doing nothing, the main process also performs it's own 
-	// share of contrast streching
-	int chunkSize = rows/numProcs;
-	int extraSize = rows%numProcs;
-
-	uchar** processedImage;
 	uchar** finalImage = New2dMatrix<uchar>(rows, cols*3);
+	
+	memcpy(finalImage[0], image[0], rows * cols * 3 * sizeof(uchar));
 
-	if (numProcs == 1) {
-		processedImage = ContrastStretch(&image[0], chunkSize + extraSize, cols, steps);
-	}
-	else {
-		processedImage = ContrastStretch(&image[0], chunkSize + extraSize + 1, cols, steps);
-	}
-	memcpy(finalImage[0], processedImage[0], (chunkSize + extraSize) * cols * 3 * sizeof(uchar));
+	int count = 1;
+	// First we send the number of rows and columns of the image
+	MPI_Bcast(&rows, count, MPI_INT, 0 /* main */, MPI_COMM_WORLD);
+	MPI_Bcast(&cols, count, MPI_INT, 0 /* main */, MPI_COMM_WORLD);
+	
+	// We send the extra size to estimate the starting row
+	int extraSize = rows%numProcs;
+	MPI_Bcast(&extraSize, count, MPI_INT, 0 /* main */, MPI_COMM_WORLD);
+	
+	// We send the no. of steps we have to perform contrast streching
+	MPI_Bcast(&steps, count, MPI_INT, 0 /* main */, MPI_COMM_WORLD);
 
-	// Receive the remaining results from the workers
-	for (int w = 1; w < numProcs; w++) {
-
-		int src = w;
-		int count = chunkSize * cols * 3;
-		int tag = 0;
-
-		// Receive chunk of results from worker:
-		int row = chunkSize * w + extraSize;
-		MPI_Recv(processedImage[0], count, MPI_UNSIGNED_CHAR, src, tag, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-		memcpy(finalImage[row],  processedImage[0], chunkSize * cols * 3 * sizeof(uchar));
+	for (int step = 0; step < steps; step++){
+		cout << "** Step " << step + 1 << "..." << endl;
+		cout.flush();
+		// Send image to workers:
+		for (int w = 1; w < numProcs; w++) {
+			
+			int dest = w;
+			int count = 1;
+			int tag = 0;
+			
+			
+			// We send the image
+			count = rows * cols * 3;
+			MPI_Send(finalImage[0], count, MPI_UNSIGNED_CHAR, dest, tag, MPI_COMM_WORLD);
+		}
+		
+		// Instead of doing nothing, the main process also performs it's own 
+		// share of contrast streching
+		int chunkSize = rows/numProcs;
+		int extraSize = rows%numProcs;
+		
+		uchar** processedImage;
+		if (numProcs == 1) {
+			processedImage = ContrastStretch(&finalImage[0], chunkSize + extraSize, cols, 1);
+		}
+		else {
+			processedImage = ContrastStretch(&finalImage[0], chunkSize + extraSize + 1, cols, 1);
+		}
+		memcpy(finalImage[0], processedImage[0], (chunkSize + extraSize) * cols * 3 * sizeof(uchar));
+	
+		// Receive the remaining results from the workers
+		for (int w = 1; w < numProcs; w++) {
+	
+			int src = w;
+			int count = chunkSize * cols * 3;
+			int tag = 0;
+	
+			// Receive chunk of results from worker:
+			int row = chunkSize * w + extraSize;
+			MPI_Recv(finalImage[row], count, MPI_UNSIGNED_CHAR, src, tag, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+		}
+		
 	}
 
 	return finalImage;
@@ -349,45 +357,48 @@ void worker_process(int myRank, int numProcs)
 	int tag = 0;
 	int rows, cols;
 
-	MPI_Recv(&rows, count, MPI_INT, src, tag, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-	MPI_Recv(&cols, count, MPI_INT, src, tag, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-
-	// We receive the no. of steps we have to perform contrast streching
-	int steps;
-	MPI_Recv(&steps, count, MPI_INT, src, tag, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+	MPI_Bcast(&rows, count, MPI_INT, 0 /* main */, MPI_COMM_WORLD);
+	MPI_Bcast(&cols, count, MPI_INT, 0 /* main */, MPI_COMM_WORLD);
 
 	// We receive the extrasize to estimate the startRow
 	int extraSize;
-	MPI_Recv(&extraSize, count, MPI_INT, src, tag, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+	MPI_Bcast(&extraSize, count, MPI_INT, 0 /* main */, MPI_COMM_WORLD);
+
+	// We receive the no. of steps we have to perform contrast streching
+	int steps;
+	MPI_Bcast(&steps, count, MPI_INT, 0 /* main */, MPI_COMM_WORLD);
 
 	// We allocate space for image, and receive the image from main
 	uchar** image = New2dMatrix<uchar>(rows, cols*3);
 
-	// NOTE: we know that underlying "matrix" is single 1D array, pointed to image[0] 
-	// and of length rows * cols * 3.
-  	count = rows * cols * 3;
-	MPI_Recv(image[0], count, MPI_UNSIGNED_CHAR, src, tag, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+	for (int step = 0; step < steps; step++) {
+		// NOTE: we know that underlying "matrix" is single 1D array, pointed to image[0] 
+		// and of length rows * cols * 3.
+		  count = rows * cols * 3;
+		MPI_Recv(image[0], count, MPI_UNSIGNED_CHAR, src, tag, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+	
+		// We have the image. We perform contrast streching for our block of rows
+		int chunkSize = rows / numProcs;
+		int startRow = chunkSize * myRank + extraSize;
+	
+		uchar** processedImage;
+	
+		if (myRank == numProcs - 1) {
+			processedImage = ContrastStretch(&image[startRow - 1], chunkSize + 1, cols, 1);
+		}
+	
+		else {
+			processedImage = ContrastStretch(&image[startRow - 1], chunkSize + 2, cols, 1);
+		}
+	
+		// Done, send our results back to main
+		int dest = 0;
+		count = chunkSize * cols * 3;
+		tag = 0;
+	
+		MPI_Send(processedImage[1], count, MPI_UNSIGNED_CHAR, dest, tag, MPI_COMM_WORLD);
 
-	// We have the image. We perform contrast streching for our block of rows
-	int chunkSize = rows / numProcs;
-	int startRow = chunkSize * myRank + extraSize;
-
-	uchar** processedImage;
-
-	if (myRank == numProcs - 1) {
-		processedImage = ContrastStretch(&image[startRow - 1], chunkSize + 1, cols, steps);
 	}
-
-	else {
-		processedImage = ContrastStretch(&image[startRow - 1], chunkSize + 2, cols, steps);
-	}
-
-	// Done, send our results back to main
-	int dest = 0;
-	count = chunkSize * cols * 3;
-	tag = 0;
-
-	MPI_Send(processedImage[1], count, MPI_UNSIGNED_CHAR, dest, tag, MPI_COMM_WORLD);
 
 	// cleanup
 	Delete2dMatrix(image);
