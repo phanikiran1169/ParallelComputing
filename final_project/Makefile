@@ -4,6 +4,7 @@ LDFLAGS =
 SOURCES = *.cpp
 TARGET = floyd_warshall
 INPUT_FILE = data.txt
+OUTPUT_FILE = output.txt
 NUM_VERTICES = 1005
 NUM_THREADS = 1
 
@@ -12,4 +13,4 @@ build:
 	$(CXX) $(CXXFLAGS) $(SOURCES) $(LDFLAGS) -o $(TARGET)
 
 run:
-	./$(TARGET) $(INPUT_FILE) $(NUM_VERTICES) $(NUM_THREADS) 
+	./$(TARGET) $(INPUT_FILE) $(OUTPUT_FILE) $(NUM_VERTICES) $(NUM_THREADS)

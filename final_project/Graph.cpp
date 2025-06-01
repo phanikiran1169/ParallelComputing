@@ -3,8 +3,6 @@
 #include <sstream>
 #include <iostream>
 
-#define INF std::numeric_limits<int>::max()
-
 Graph::Graph(int vertices) : numVertices(vertices), numEdges(0) {
     adjMatrix = New2dMatrix<int>(numVertices, numVertices);
     
