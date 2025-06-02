@@ -8,8 +8,6 @@
 #include <iomanip>
 #include "matrix.h"
 
-#define INF std::numeric_limits<int>::max()
-
 class Graph {
 private:
     int numVertices;

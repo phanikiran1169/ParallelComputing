@@ -1,6 +1,8 @@
 #ifndef MATRIX_H
 #define MATRIX_H
 
+#include <cstring>
+
 template <class T>
 T **New2dMatrix(int ROWS, int COLS)
 {

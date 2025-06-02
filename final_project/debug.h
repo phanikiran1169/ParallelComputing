@@ -6,8 +6,6 @@
 #include <limits>
 #include "matrix.h"
 
-#define INF std::numeric_limits<int>::max()
-
 // Save a distance matrix to a file
 bool saveMatrix(int** matrix, int numVertices, const std::string& filename) {
     std::ofstream file(filename);
@@ -22,11 +20,7 @@ bool saveMatrix(int** matrix, int numVertices, const std::string& filename) {
     // Write the matrix
     for (int i = 0; i < numVertices; i++) {
         for (int j = 0; j < numVertices; j++) {
-            if (matrix[i][j] == INF) {
-                file << "INF";
-            } else {
                 file << matrix[i][j];
-            }
             if (j < numVertices - 1) {
                 file << " ";
             }
@@ -72,17 +66,15 @@ int** loadMatrix(const std::string& filename, int expectedVertices) {
                 return nullptr;
             }
             
-            if (value == "INF") {
-                matrix[i][j] = INF;
-            } else {
-                try {
-                    matrix[i][j] = std::stoi(value);
-                } catch (const std::exception& e) {
-                    std::cout << "Error: Invalid matrix value '" << value << "' at [" << i << "][" << j << "]" << std::endl;
-                    Delete2dMatrix(matrix);
-                    file.close();
-                    return nullptr;
-                }
+            try {
+                matrix[i][j] = std::stoi(value);
+            } 
+            
+            catch (const std::exception& e) {
+                std::cout << "Error: Invalid matrix value '" << value << "' at [" << i << "][" << j << "]" << std::endl;
+                Delete2dMatrix(matrix);
+                file.close();
+                return nullptr;
             }
         }
     }

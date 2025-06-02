@@ -12,7 +12,7 @@ Graph::Graph(int vertices) : numVertices(vertices), numEdges(0) {
                 // Distance from vertex to itself is 0
                 adjMatrix[i][j] = 0;
             } else {
-                adjMatrix[i][j] = INF;
+                adjMatrix[i][j] = -1;
             }
         }
     }
@@ -52,10 +52,8 @@ bool Graph::loadFromFile(const std::string& filename) {
 }
 
 void Graph::addEdge(int u, int v, int weight) {
-    if (u >= 0 && u < numVertices && v >= 0 && v < numVertices) {
-        if (u != v) {
-            adjMatrix[u][v] = weight;
-        }
+    if (u != v) {
+        adjMatrix[u][v] = weight;
     }
 }
 
@@ -73,10 +71,7 @@ int** Graph::getAdjMatrix() {
 
 
 bool Graph::hasEdge(int u, int v) const {
-    if (u >= 0 && u < numVertices && v >= 0 && v < numVertices) {
-        return adjMatrix[u][v] != INF && adjMatrix[u][v] != 0;
-    }
-    return false;
+    return adjMatrix[u][v] != -1 && adjMatrix[u][v] != 0;
 }
 
 int Graph::getEdgeWeight(int u, int v) const {
