@@ -1,14 +1,14 @@
 CXX = g++
 MPI_CXX = mpic++
-CXXFLAGS = -O2 -Wall -Wno-unused-but-set-variable -Wno-unused-function -Wno-write-strings -Wno-unused-result
-LDFLAGS = 
+CXXFLAGS = -O2 -Wall -Wno-unused-but-set-variable -Wno-unused-function -Wno-write-strings -Wno-unused-result -fopenmp
+LDFLAGS = -fopenmp
 SOURCES = *.cpp
 TARGET = floyd_warshall
 INPUT_FILE = data.txt
 OUTPUT_FILE = output.txt
 NUM_VERTICES = 1005
-NUM_THREADS = 1
-NUM_PROCESSES = 3
+NUM_THREADS = 2
+NUM_PROCESSES = 4
 
 build:
 	rm -f $(TARGET)

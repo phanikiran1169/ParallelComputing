@@ -1,6 +1,7 @@
 #include <iostream>
 #include "matrix.h"
 #include <mpi.h>
+#include <omp.h>
 #include <cstring>
 
 extern int myRank, numProcs, numThreads;
@@ -82,6 +83,7 @@ void fw_helper(int** chunkMatrix, int numVertices, int actualChunkSize) {
 
         MPI_Bcast(row_k, numVertices, MPI_INT, sender, MPI_COMM_WORLD);
         
+        #pragma omp parallel for schedule(static) num_threads(numThreads)
         for (int i = 0; i < actualChunkSize; i++) {
             for (int j = 0; j < numVertices; j++) {
                 // Skip if no path through k

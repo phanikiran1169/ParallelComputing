@@ -98,6 +98,7 @@ int main(int argc, char* argv[]) {
         std::cout << "Floyd-Warshall execution time: " << std::fixed << std::setprecision(3) 
                   << seconds << " seconds (" << duration.count() << " ms)" << std::endl;
         std::cout << "Number of MPI processes: " << numProcs << std::endl;
+        std::cout << "Number of threads: " << numThreads << std::endl;
         std::cout << "Matrix size: " << numVertices << "x" << numVertices << std::endl;
         std::cout << "=============================" << std::endl;
         

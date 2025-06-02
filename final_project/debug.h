@@ -5,6 +5,7 @@
 #include <fstream>
 #include <limits>
 #include "matrix.h"
+#include <omp.h>
 
 // Save a distance matrix to a file
 bool saveMatrix(int** matrix, int numVertices, const std::string& filename) {
@@ -87,11 +88,15 @@ void verifyResult(int** distMatrix1, int** distMatrix2, int numVertices) {
     bool allMatch = true;
     int mismatchCount = 0;
     
+    #pragma omp parallel for reduction(+:mismatchCount) reduction(&&:allMatch)
     for (int i = 0; i < numVertices; i++) {
         for (int j = 0; j < numVertices; j++) {
             if (distMatrix1[i][j] != distMatrix2[i][j]) {
-                if (mismatchCount < 10) {
-                    std::cout << "Verification failed: distMatrix1[" << i << "][" << j << "] = " << distMatrix1[i][j] << " != distMatrix2[" << i << "][" << j << "] = " << distMatrix2[i][j] << std::endl;
+                #pragma omp critical
+                {
+                    if (mismatchCount < 10) {
+                        std::cout << "Verification failed: distMatrix1[" << i << "][" << j << "] = " << distMatrix1[i][j] << " != distMatrix2[" << i << "][" << j << "] = " << distMatrix2[i][j] << std::endl;
+                    }
                 }
                 mismatchCount++;
                 allMatch = false;
