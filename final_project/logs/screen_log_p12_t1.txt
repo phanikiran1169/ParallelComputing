@@ -1,0 +1,21 @@
+mpiexec -n 12 ./floyd_warshall data.txt logs/output_p12_t1.txt 6301 1
+------ Floyd-Warshall Algorithm ------
+
+Loading graph from file data.txt...
+Loaded data from data.txt
+Graph loaded successfully!
+Graph has 6301 vertices and 20777 edges
+
+Computing shortest distances...
+Starting Floyd-Warshall computation...
+Computation completed!
+
+=== Performance Results ===
+Floyd-Warshall execution time: 23.195 seconds (23195 ms)
+Number of MPI processes: 12
+Number of threads: 1
+Matrix size: 6301x6301
+=============================
+
+Saving distance matrix to logs/output_p12_t1.txt...
+Distance matrix saved successfully!
