@@ -93,7 +93,7 @@ int main(int argc, char* argv[])
 		if (image == NULL)
 		{
 			cout << "** Failed to open image file, halting..." << endl;
-			MPI_Finalize();
+			MPI_Abort(MPI_COMM_WORLD, 1 /*return code*/);
 			return 0;
 		}
 
@@ -140,13 +140,15 @@ int main(int argc, char* argv[])
 		cout << endl;
 		cout << "** Done!  Time: " << duration.count() / 1000.0 << " secs" << endl;
 
+		int originalRows = rowsPerProc * numProcs + leftOverRows;
+		debug_compare_image("sunset.bmp", steps, false /*verbose off*/, image, 0, originalRows-1, 0, cols-1);
+
 		cout << "** Writing bitmap..." << endl;
 		WriteBitmapFile(outfile, bitmapFileHeader, bitmapInfoHeader, image);
 
 		cout << "** Execution complete." << endl;
 		cout << endl;
 
-		// debug_compare_image("stretched-10.bmp", steps, true /*verbose off*/, image, 0, rows-1, 0, cols-1);
 	}
 
 	//
@@ -201,22 +203,28 @@ uchar** DistributeImage(int myRank, int numProcs,
 
 	//
 	// Master: scatter the image to all the workers (including master)
-	// We ignore the data sent to the master (the data is already in the image matrix)
+	//
 
-	// Allocate memory for the chunk
-	uchar** chunk = New2dMatrix<uchar>(rows + 2, cols * 3);  // worst-case: 2 ghost rows (+2)
+	// Create a new image chunk for the workers
+	if (myRank > 0) {
+		// Allocate memory for the chunk
+		image = New2dMatrix<uchar>(rows + 2, cols * 3);  // worst-case: 2 ghost rows (+2)
+	}
 
 	// master keeps extra rows, scatters the rest (workers recv)
 	uchar* sendbuf = (myRank == 0) ? image[leftOverRows] : nullptr;
-	
+
 	//
-	// receive data into newly-allocated matrix, skipping the first row
+	// For workers,receive data into newly-allocated matrix, skipping the first row
 	// since it will be used for ghost row storage (which is why it's image[1] below 
-	// and not image[0]):
+	// and not image[0]). Similarly for master, we receive the data into the 
+	// original image matrix
 	//
+	uchar* recvbuf = (myRank == 0) ? image[leftOverRows] : image[1];
+	
 
 	MPI_Scatter(sendbuf, rows * cols * 3, MPI_UNSIGNED_CHAR, 
-				chunk[1], rows * cols * 3, MPI_UNSIGNED_CHAR, sender, MPI_COMM_WORLD);
+				recvbuf, rows * cols * 3, MPI_UNSIGNED_CHAR, sender, MPI_COMM_WORLD);
 	
 	
 	// master is now only responsible for their own (the first) chunk:
@@ -228,7 +236,7 @@ uchar** DistributeImage(int myRank, int numProcs,
 	// Done!  Everyone returns back a matrix to process... (rows and cols should already
 	// be set for both master and workers)
 	//
-	return myRank == 0 ? image : chunk;
+	return image;
 }
 
 

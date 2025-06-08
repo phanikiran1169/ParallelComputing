@@ -265,21 +265,23 @@ uchar **ContrastStretch(uchar **image, int rows, int cols, int steps)
 		// 1 of 2: everyone send their last data row *DOWN* to the next proc, and receive 
 		// that row from the process above them and store into first (top) ghost row:
 		//
-		if (myRank < numProcs-1)  // all send except the last process:
-			MPI_Send(image[rows], cols*3, MPI_UNSIGNED_CHAR, myRank+1, tag, MPI_COMM_WORLD);
 
-		if (myRank > 0)  // all receive except the first process, store into top row:
-			MPI_Recv(image[0], cols*3, MPI_UNSIGNED_CHAR, myRank-1, tag, MPI_COMM_WORLD, &status);
+		int dest = (myRank < numProcs - 1) ? myRank + 1 : MPI_PROC_NULL;
+		int src = (myRank > 0) ? myRank - 1 : MPI_PROC_NULL;
+
+		MPI_Sendrecv(image[rows], cols*3, MPI_UNSIGNED_CHAR, dest, tag, 
+			image[0], cols*3, MPI_UNSIGNED_CHAR, src, tag, MPI_COMM_WORLD, &status);
 
 		// 
 		// 2 of 2: everyone send their first data row *UP* to the previous proc, and receive
 		// that row from the process below them and store into their last (bottom) ghost row:
 		//
-		if (myRank > 0)  // all send except the first process:
-			MPI_Send(image[1], cols*3, MPI_UNSIGNED_CHAR, myRank-1, tag, MPI_COMM_WORLD);
 
-		if (myRank < numProcs-1)  // all receive except the last process, store in bottom row:
-			MPI_Recv(image[rows+1], cols*3, MPI_UNSIGNED_CHAR, myRank+1, tag, MPI_COMM_WORLD, &status);
+		dest = (myRank > 0) ? myRank - 1 : MPI_PROC_NULL;
+		src = (myRank < numProcs - 1) ? myRank + 1 : MPI_PROC_NULL;
+
+		MPI_Sendrecv(image[1], cols*3, MPI_UNSIGNED_CHAR, dest, tag, 
+			image[rows+1], cols*3, MPI_UNSIGNED_CHAR, src, tag, MPI_COMM_WORLD, &status);
 
 		//
 		// Okay, for each row in OUR CHUNK, lighten/darken pixel:
