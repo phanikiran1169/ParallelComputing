@@ -140,8 +140,8 @@ int main(int argc, char* argv[])
 		cout << endl;
 		cout << "** Done!  Time: " << duration.count() / 1000.0 << " secs" << endl;
 
-		int originalRows = rowsPerProc * numProcs + leftOverRows;
-		debug_compare_image("sunset.bmp", steps, false /*verbose off*/, image, 0, originalRows-1, 0, cols-1);
+		// int originalRows = rowsPerProc * numProcs + leftOverRows;
+		// debug_compare_image("sunset.bmp", steps, false /*verbose off*/, image, 0, originalRows-1, 0, cols-1);
 
 		cout << "** Writing bitmap..." << endl;
 		WriteBitmapFile(outfile, bitmapFileHeader, bitmapInfoHeader, image);
@@ -252,10 +252,10 @@ uchar** CollectImage(int myRank, int numProcs,
 {
 	int receiver = 0;
 
-	if (myRank == 0) {
-		cout << " Master collecting image..." << endl;
-		cout.flush();
-	}
+	// if (myRank == 0) {
+	// 	cout << "   Master collecting image..." << endl;
+	// 	cout.flush();
+	// }
 	
 	rowsPerProc = (myRank == 0) ? rowsPerProc : rows;
 		

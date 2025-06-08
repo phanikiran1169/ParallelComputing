@@ -145,7 +145,7 @@ void copy_boundary(uchar** image2, uchar** image, int rows, int cols)
 //
 // stretch_one_pixel:
 //
-void stretch_one_pixel(uchar** image2, uchar** image, int baserow, int basecol)
+int stretch_one_pixel(uchar** image2, uchar** image, int baserow, int basecol)
 {
 	int prevrow = baserow - 1;  // row above
 	int nextrow = baserow + 1;  // row below
@@ -157,6 +157,7 @@ void stretch_one_pixel(uchar** image2, uchar** image, int baserow, int basecol)
 	//
 	// now update each pixel based on nearest neighbors around that pixel:
 	//
+	int changes = 0;
 
 	// Blue:
 	image2[baserow][basecol] = NewPixelValue(image[prevrow][prevcol],
@@ -169,6 +170,10 @@ void stretch_one_pixel(uchar** image2, uchar** image, int baserow, int basecol)
 		image[nextrow][basecol],
 		image[nextrow][nextcol],
 		1 /*stepby*/);
+
+	if (image2[baserow][basecol] != image[baserow][basecol]) {
+		changes++;
+	}
 
 	// Green:
 	basecol++;
@@ -186,6 +191,10 @@ void stretch_one_pixel(uchar** image2, uchar** image, int baserow, int basecol)
 		image[nextrow][nextcol],
 		1 /*stepby*/);
 
+	if (image2[baserow][basecol] != image[baserow][basecol]) {
+		changes++;
+	}
+
 	// Red:
 	basecol++;
 	prevcol++;
@@ -201,6 +210,12 @@ void stretch_one_pixel(uchar** image2, uchar** image, int baserow, int basecol)
 		image[nextrow][basecol],
 		image[nextrow][nextcol],
 		1 /*stepby*/);
+
+	if (image2[baserow][basecol] != image[baserow][basecol]) {
+		changes++;
+	}
+
+	return changes;
 }
 
 
@@ -250,11 +265,20 @@ uchar **ContrastStretch(uchar **image, int rows, int cols, int steps)
 	// Okay, now perform contrast stretching, one step at a time:
 	//
 	int step = 1;
+	bool converged = false;
 
-	while (step <= steps)
+	// The algorithm converges when we have reached the maximum number of steps or
+	// when the images stops changing for every worker
+	while (step <= steps && !converged)
 	{
 		if (myRank == 0)
 		  cout << "** Step " << step << "..." << endl;
+
+		// Master computes the total differences across all processes
+		int totalDiffs = 0;
+		
+		// Each process computes the differences for their own chunk
+		int diffs = 0;
 
 		//cout << myRank << " (" << host << "): Step " << step << "..." << endl;
 
@@ -298,7 +322,7 @@ uchar **ContrastStretch(uchar **image, int rows, int cols, int steps)
 
 			for (int col = 1; col < cols - 1; col++, basecol += 3)
 			{
-				stretch_one_pixel(image2, image, row, basecol);
+				diffs += stretch_one_pixel(image2, image, row, basecol);
 			}
 		}
 
@@ -308,6 +332,18 @@ uchar **ContrastStretch(uchar **image, int rows, int cols, int steps)
 		//
 		copy_boundary(image2, image, rows + 2, cols);
 
+		int root = 0;
+
+		// Master reduces the total differences across all processes
+		MPI_Reduce(&diffs, &totalDiffs, 1, MPI_INT, MPI_SUM, root /* master*/, MPI_COMM_WORLD);
+
+		if (myRank == 0) {
+			cout << "   Diff: " << totalDiffs << endl;
+			cout.flush();
+		}
+
+		// master has total differences, it has to broadcast it to all processes
+		MPI_Bcast(&totalDiffs, 1, MPI_INT, root /* master*/, MPI_COMM_WORLD);
 		//
 		// flip the image pointers and step:
 		//
@@ -317,7 +353,10 @@ uchar **ContrastStretch(uchar **image, int rows, int cols, int steps)
 
 		step++;
 
+		converged = (totalDiffs == 0);
+
 	}//while-each-step
+
 
 	//
 	// Okay, we're done, let's make sure the final results are in 
