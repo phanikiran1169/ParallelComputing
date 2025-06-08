@@ -146,7 +146,7 @@ int main(int argc, char* argv[])
 		cout << "** Execution complete." << endl;
 		cout << endl;
 
-		debug_compare_image("stretched-10.bmp", steps, true /*verbose off*/, image, 0, rows-1, 0, cols-1);
+		// debug_compare_image("stretched-10.bmp", steps, true /*verbose off*/, image, 0, rows-1, 0, cols-1);
 	}
 
 	//
@@ -213,9 +213,10 @@ uchar** DistributeImage(int myRank, int numProcs,
 	// receive data into newly-allocated matrix, skipping the first row
 	// since it will be used for ghost row storage (which is why it's image[1] below 
 	// and not image[0]):
-	//	
+	//
+
 	MPI_Scatter(sendbuf, rows * cols * 3, MPI_UNSIGNED_CHAR, 
-				chunk[1], rows * cols * 3, MPI_UNSIGNED_CHAR, 0, MPI_COMM_WORLD);
+				chunk[1], rows * cols * 3, MPI_UNSIGNED_CHAR, sender, MPI_COMM_WORLD);
 	
 	
 	// master is now only responsible for their own (the first) chunk:
@@ -245,13 +246,17 @@ uchar** CollectImage(int myRank, int numProcs,
 
 	if (myRank == 0) {
 		cout << " Master collecting image..." << endl;
+		cout.flush();
 	}
 	
+	rowsPerProc = (myRank == 0) ? rowsPerProc : rows;
+		
 	// master receives back the image from all the workers
 	uchar* recvbuf = (myRank == 0) ? image[leftOverRows] : nullptr;
+	uchar* sendbuf = (myRank == 0) ? image[leftOverRows] : image[1];
 	
-	MPI_Gather(image[1], rows * cols * 3, MPI_UNSIGNED_CHAR, 
-				recvbuf, rows * cols * 3, MPI_UNSIGNED_CHAR, receiver, MPI_COMM_WORLD);
+	MPI_Gather(sendbuf, rowsPerProc * cols * 3, MPI_UNSIGNED_CHAR, 
+				recvbuf, rowsPerProc * cols * 3, MPI_UNSIGNED_CHAR, receiver, MPI_COMM_WORLD);
 
 	if (myRank > 0){
 		Delete2dMatrix<uchar>(image);
