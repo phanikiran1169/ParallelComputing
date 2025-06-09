@@ -338,7 +338,7 @@ uchar **ContrastStretch(uchar **image, int rows, int cols, int steps)
 		MPI_Reduce(&diffs, &totalDiffs, 1, MPI_INT, MPI_SUM, root /* master*/, MPI_COMM_WORLD);
 
 		if (myRank == 0) {
-			cout << "   Diff: " << totalDiffs << endl;
+			cout << "Diff " << totalDiffs << endl;
 			cout.flush();
 		}
 

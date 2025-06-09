@@ -220,7 +220,7 @@ uchar** DistributeImage(int myRank, int numProcs,
 	// and not image[0]). Similarly for master, we receive the data into the 
 	// original image matrix
 	//
-	uchar* recvbuf = (myRank == 0) ? image[leftOverRows] : image[1];
+	uchar* recvbuf = (myRank == 0) ? (uchar*)MPI_IN_PLACE : image[1];
 	
 
 	MPI_Scatter(sendbuf, rows * cols * 3, MPI_UNSIGNED_CHAR, 
@@ -261,7 +261,7 @@ uchar** CollectImage(int myRank, int numProcs,
 		
 	// master receives back the image from all the workers
 	uchar* recvbuf = (myRank == 0) ? image[leftOverRows] : nullptr;
-	uchar* sendbuf = (myRank == 0) ? image[leftOverRows] : image[1];
+	uchar* sendbuf = (myRank == 0) ? (uchar*)MPI_IN_PLACE : image[1];
 	
 	MPI_Gather(sendbuf, rowsPerProc * cols * 3, MPI_UNSIGNED_CHAR, 
 				recvbuf, rowsPerProc * cols * 3, MPI_UNSIGNED_CHAR, receiver, MPI_COMM_WORLD);
